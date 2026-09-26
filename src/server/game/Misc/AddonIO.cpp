@@ -420,7 +420,7 @@ void AddonIO::HandleTransmogrificationInfoRequest(Player* player, std::string co
     ObjectGuid guid = ObjectGuid::Empty;
     try
     {
-        guid = ObjectGuid(std::stoull(body, nullptr, 16));
+        guid = ObjectGuid(uint64(std::stoull(body, nullptr, 16)));
     }
     catch (std::exception const&)
     {
@@ -518,7 +518,7 @@ void AddonIO::HandleAverageItemLevelRequest(Player* player, std::string const& b
     ObjectGuid guid = ObjectGuid::Empty;
     try
     {
-        guid = ObjectGuid(std::stoull(body, nullptr, 16));
+        guid = ObjectGuid(uint64(std::stoull(body, nullptr, 16)));
     }
     catch (std::exception const&)
     {
