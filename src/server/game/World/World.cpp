@@ -44,6 +44,7 @@
 #include "DBCStores.h"
 #include "DBUpdater.h"
 #include "DatabaseEnv.h"
+#include "TransmogrificationMgr.h"
 #include "DisableMgr.h"
 #include "DynamicVisibility.h"
 #include "GameEventMgr.h"
@@ -297,6 +298,7 @@ void World::LoadConfigSettings(bool reload)
 
     // call ScriptMgr if we're reloading the configuration
     sScriptMgr->OnAfterConfigLoad(reload);
+    LoadShop();
 }
 
 /// Initialize the World
@@ -896,6 +898,9 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Initialize Commands...");
     Acore::ChatCommands::LoadCommandMap();
 
+    LOG_INFO("server.loading", "Loading transmogrification data...");
+    sTransmogrificationMgr->LoadFromDB();
+
     ///- Initialize game time and timers
     LOG_INFO("server.loading", "Initialize Game Time and Timers");
     LOG_INFO("server.loading", " ");
@@ -1129,6 +1134,16 @@ void World::Update(uint32 diff)
     sWorldUpdateTime.RecordUpdateTime(GameTime::GetGameTimeMS(), diff, sWorldSessionMgr->GetActiveSessionCount());
 
     DynamicVisibilityMgr::Update(sWorldSessionMgr->GetActiveSessionCount());
+
+    if (uint32 interval = getIntConfig(CONFIG_SHOP_INTERVAL_UPDATE))
+    {
+        _shopUpdate += diff;
+        if (_shopUpdate > interval)
+        {
+            LoadDonateCurrency();
+            _shopUpdate = 0;
+        }
+    }
 
     ///- Update the different timers
     for (int i = 0; i < WUPDATE_COUNT; ++i)
@@ -1911,6 +1926,137 @@ bool World::IsPvPRealm() const
 bool World::IsFFAPvPRealm() const
 {
     return getIntConfig(CONFIG_GAME_TYPE) == REALM_TYPE_FFA_PVP;
+}
+
+PlayerDonate World::FindShopCurrency(uint32 accountId) const
+{
+    PlayerDonateMap::const_iterator itr = _playerDonate.find(accountId);
+    if (itr != _playerDonate.end())
+        return itr->second;
+
+    return {};
+}
+
+void World::LoadDonateCurrency()
+{
+    LoginDatabasePreparedStatement* expirePremium = LoginDatabase.GetPreparedStatement(
+        LOGIN_UPD_EXPIRED_ACCOUNT_PREMIUM);
+    LoginDatabase.DirectExecute(expirePremium);
+    LoginDatabasePreparedStatement* expireVip = LoginDatabase.GetPreparedStatement(LOGIN_UPD_EXPIRED_ACCOUNT_PREMIUM1);
+    LoginDatabase.DirectExecute(expireVip);
+
+    _playerDonate.clear();
+    if (QueryResult result = LoginDatabase.Query("SELECT id, bonuses, votes FROM account_donate"))
+    {
+        do
+        {
+            Field* fields = result->Fetch();
+            PlayerDonate data;
+            int32 balance = fields[1].Get<int32>();
+            int32 vote = fields[2].Get<int32>();
+            data.balance = balance > 0 ? uint32(balance) : 0;
+            data.vote = vote > 0 ? uint32(vote) : 0;
+            _playerDonate[fields[0].Get<uint32>()] = data;
+        } while (result->NextRow());
+    }
+}
+
+void World::LoadShop()
+{
+    LoadDonateCurrency();
+
+    QueryResult versionResult = LoginDatabase.Query("SELECT version FROM custom_store_shop_version LIMIT 1");
+    if (!versionResult)
+        return;
+
+    _shopVersion = versionResult->Fetch()[0].Get<uint32>();
+
+    if (QueryResult result = LoginDatabase.Query(
+        "SELECT id, itemEntry, count, price, discount, discountPrice, creatureEntry, "
+        "storeFlags, CategoryID, SubCategoryID, MoneyID FROM custom_store_item_data"))
+    {
+        std::map<int32, StoreItemData> items;
+        do
+        {
+            Field* fields = result->Fetch();
+            StoreItemData data;
+            data.itemEntry = fields[1].Get<uint32>();
+            data.count = fields[2].Get<uint32>();
+            data.price = fields[3].Get<uint32>();
+            data.discount = fields[4].Get<uint8>();
+            data.discountPrice = fields[5].Get<uint32>();
+            data.creatureEntry = fields[6].Get<uint32>();
+            data.storeFlags = fields[7].Get<uint32>();
+            data.CategoryID = fields[8].Get<uint8>();
+            data.SubCategoryID = fields[9].Get<uint8>();
+            data.MoneyID = fields[10].Get<uint8>();
+            items.emplace(int32(fields[0].Get<uint32>()), data);
+        } while (result->NextRow());
+
+        _storeItems = std::move(items);
+        _shopItemCount = uint32(_storeItems.size());
+    }
+
+    if (QueryResult result = LoginDatabase.Query(
+        "SELECT offerID, background, headline, title, description, detailsTitle, details, "
+        "time, productID, itemEntry, price FROM custom_store_special_offer"))
+    {
+        std::map<int32, StoreSpecialOfferData> offers;
+        do
+        {
+            Field* fields = result->Fetch();
+            StoreSpecialOfferData data;
+            data.background = fields[1].Get<std::string>();
+            data.headline = fields[2].Get<std::string>();
+            data.title = fields[3].Get<std::string>();
+            data.description = fields[4].Get<std::string>();
+            data.detailsTitle = fields[5].Get<std::string>();
+            data.details = fields[6].Get<uint32>();
+            data.time = fields[7].Get<uint32>();
+            data.productID = fields[8].Get<uint32>();
+            data.itemEntry = fields[9].Get<uint32>();
+            data.price = fields[10].Get<uint32>();
+            offers.emplace(int32(fields[0].Get<uint32>()), data);
+        } while (result->NextRow());
+
+        _storeOffers = std::move(offers);
+    }
+
+    if (QueryResult result = LoginDatabase.Query(
+        "SELECT detailsID, itemID, role, count FROM custom_store_special_offer_details"))
+    {
+        std::multimap<int32, StoreSpecialOfferDetailsData> details;
+        do
+        {
+            Field* fields = result->Fetch();
+            StoreSpecialOfferDetailsData data;
+            data.itemID = fields[1].Get<uint32>();
+            data.role = fields[2].Get<uint32>();
+            data.count = fields[3].Get<uint32>();
+            details.emplace(int32(fields[0].Get<uint32>()), data);
+        } while (result->NextRow());
+
+        _storeOfferDetails = std::move(details);
+    }
+
+    if (QueryResult result = LoginDatabase.Query(
+        "SELECT id, hash, currency, price, productID FROM custom_store_mounts"))
+    {
+        std::map<int32, CollectionMountData> mounts;
+        do
+        {
+            Field* fields = result->Fetch();
+            CollectionMountData data;
+            data.id = fields[0].Get<uint32>();
+            data.hash = fields[1].Get<std::string>();
+            data.currency = fields[2].Get<uint8>();
+            data.price = fields[3].Get<uint32>();
+            data.productID = fields[4].Get<uint32>();
+            mounts.emplace(int32(data.id), data);
+        } while (result->NextRow());
+
+        _storeMounts = std::move(mounts);
+    }
 }
 
 uint32 World::GetNextWhoListUpdateDelaySecs()

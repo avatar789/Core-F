@@ -2501,6 +2501,23 @@ Rate.XP.Explore   = 1
 Rate.XP.Pet       = 1
 
 #
+#    Rate.XP.Kill.Premium
+#    Rate.XP.Quest.Premium
+#    Rate.XP.Explore.Premium
+#    Rate.Reputation.Premium
+#    Rate.Honor.Premium
+#        Description: Extra multiplier applied on top of the base rate for premium accounts.
+#                     Explore and honor are applied in the core. Kill, quest and reputation
+#                     are loaded for modules that want the same premium bonus.
+#        Default:     1
+
+Rate.XP.Kill.Premium      = 1
+Rate.XP.Quest.Premium     = 1
+Rate.XP.Explore.Premium   = 1
+Rate.Reputation.Premium   = 1
+Rate.Honor.Premium        = 1
+
+#
 #    Rate.XP.BattlegroundKill...
 #        Description: Experience rate for honorable kills in battlegrounds. Not affected by Rate.XP.Kill. Defined for each battleground.
 #                     Only works if Battleground.GiveXPForKills = 1
@@ -2569,6 +2586,21 @@ HonorPointsAfterDuel = 0
 #        Default:     1
 
 Rate.Honor = 1
+
+#
+#    Shop.Enabled
+#        Description: Enable the custom addon shop (ACMSG_SHOP_* messages).
+#        Default:     0 - (Disabled)
+
+Shop.Enabled = 0
+
+#
+#    Shop.UpdateInterval
+#        Description: How often, in milliseconds, donate balances are reloaded from auth
+#                     and pushed into online sessions. 0 disables the refresh.
+#        Default:     60000
+
+Shop.UpdateInterval = 60000
 
 #
 #    MaxArenaPoints

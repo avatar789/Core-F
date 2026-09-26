@@ -85,6 +85,14 @@ void WorldSession::SendTimeQueryResponse()
 }
 
 /// Only _static_ data is sent in this packet !!!
+void WorldSession::ShopCreatureOpcode(uint32 entry)
+{
+    WorldPacket data(CMSG_CREATURE_QUERY, 4 + 8);
+    data << entry;
+    data << ObjectGuid::Empty;
+    HandleCreatureQueryOpcode(data);
+}
+
 void WorldSession::HandleCreatureQueryOpcode(WorldPacket& recvData)
 {
     uint32 entry;

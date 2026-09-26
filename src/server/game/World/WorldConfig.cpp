@@ -62,6 +62,11 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<float>(RATE_XP_QUEST, "Rate.XP.Quest", 1.0f);
     SetConfigValue<float>(RATE_XP_QUEST_DF, "Rate.XP.Quest.DF", 1.0f);
     SetConfigValue<float>(RATE_XP_EXPLORE, "Rate.XP.Explore", 1.0f);
+    SetConfigValue<float>(RATE_XP_KILL_PREMIUM, "Rate.XP.Kill.Premium", 1.0f);
+    SetConfigValue<float>(RATE_XP_QUEST_PREMIUM, "Rate.XP.Quest.Premium", 1.0f);
+    SetConfigValue<float>(RATE_XP_EXPLORE_PREMIUM, "Rate.XP.Explore.Premium", 1.0f);
+    SetConfigValue<float>(RATE_REPUTATION_PREMIUM, "Rate.Reputation.Premium", 1.0f);
+    SetConfigValue<float>(RATE_HONOR_PREMIUM, "Rate.Honor.Premium", 1.0f);
     SetConfigValue<float>(RATE_XP_PET, "Rate.XP.Pet", 1.0f);
     SetConfigValue<float>(RATE_XP_PET_NEXT_LEVEL, "Rate.Pet.LevelXP", 0.05f);
     SetConfigValue<float>(RATE_XP_BATTLEGROUND_BONUS, "Rate.XP.BattlegroundBonus", 1.0f);
@@ -527,6 +532,8 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_RANDOM_ROLL_MAXIMUM, "Group.RandomRollMaximum", 1000000);
 
     SetConfigValue<bool>(CONFIG_QUEST_POI_ENABLED, "QuestPOI.Enabled", true);
+    SetConfigValue<bool>(CONFIG_SHOP_ENABLE, "Shop.Enabled", false);
+    SetConfigValue<uint32>(CONFIG_SHOP_INTERVAL_UPDATE, "Shop.UpdateInterval", 1 * MINUTE * IN_MILLISECONDS);
 
     SetConfigValue<uint32>(CONFIG_CHANGE_FACTION_MAX_MONEY, "ChangeFaction.MaxMoney", 0);
 

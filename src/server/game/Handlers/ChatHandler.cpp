@@ -30,6 +30,7 @@
 #include "Language.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
+#include "AddonIO.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
@@ -188,6 +189,10 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
         // LANG_ADDON is only valid for the following message types
         switch (type)
         {
+            case CHAT_MSG_SAY:
+            case CHAT_MSG_YELL:
+            case CHAT_MSG_EMOTE:
+                break;
             case CHAT_MSG_PARTY:
             case CHAT_MSG_RAID:
             case CHAT_MSG_GUILD:
@@ -359,6 +364,10 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
     else
     {
         ++_addonMessageReceiveCount;
+        if (utf8length(msg) > 1024)
+            return;
+
+        sAddonIO->HandleMessage(sender, msg);
     }
 
     sScriptMgr->OnPlayerBeforeSendChatMessage(_player, type, lang, msg);
@@ -375,8 +384,11 @@ void WorldSession::HandleMessagechatOpcode(WorldPacket& recvData)
 
                 if (sender->GetLevel() < sWorld->getIntConfig(CONFIG_CHAT_SAY_LEVEL_REQ))
                 {
-                    ChatHandler(this).SendNotification(LANG_SAY_REQ, sWorld->getIntConfig(CONFIG_CHAT_SAY_LEVEL_REQ));
-                    return;
+                    if (lang != LANG_ADDON)
+                    {
+                        ChatHandler(this).SendNotification(LANG_SAY_REQ, sWorld->getIntConfig(CONFIG_CHAT_SAY_LEVEL_REQ));
+                        return;
+                    }
                 }
 
                 if (type == CHAT_MSG_SAY)

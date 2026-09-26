@@ -164,6 +164,26 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_INS_RBAC_ACCOUNT_PERMISSION, "INSERT INTO rbac_account_permissions (accountId, permissionId, granted, realmId) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE granted = VALUES(granted)", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_DEL_RBAC_ACCOUNT_PERMISSION, "DELETE FROM rbac_account_permissions WHERE accountId = ? AND permissionId = ? AND (realmId = ? OR realmId = -1)", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_SEL_RBAC_DEFAULT_PERMISSIONS, "SELECT secId, permissionId FROM rbac_default_permissions WHERE (realmId = ? OR realmId = -1) ORDER BY secId ASC", CONNECTION_SYNCH);
+
+    PrepareStatement(LOGIN_UPD_EXPIRED_ACCOUNT_PREMIUM,
+        "UPDATE account_premium SET active = 0 WHERE unsetdate <= UNIX_TIMESTAMP() AND unsetdate <> setdate",
+        CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_SEL_PREMIUM, "SELECT 1 FROM account_premium WHERE id = ? AND active = 1", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_EXPIRED_ACCOUNT_PREMIUM1,
+        "UPDATE account_vip SET active = 0 WHERE unsetdate <= UNIX_TIMESTAMP() AND unsetdate <> setdate",
+        CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_SEL_PREMIUM1, "SELECT 1 FROM account_vip WHERE id = ? AND active = 1", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_STORE_BALANCE, "UPDATE account_donate SET bonuses = ? WHERE id = ?", CONNECTION_BOTH);
+    PrepareStatement(LOGIN_UPD_STORE_VOTE, "UPDATE account_donate SET votes = ? WHERE id = ?", CONNECTION_BOTH);
+    PrepareStatement(LOGIN_INS_STORE_LOGS,
+        "INSERT INTO custom_store_logs (character_ID, character_name, account_ID, serviceName, itemID, itemCount, "
+        "totalPrice, time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_SHOP_BONUS, "SELECT bonuses FROM account_donate WHERE id = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_SEL_SHOP_VOTE, "SELECT votes FROM account_donate WHERE id = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_INSERT_STORE_BALANCE,
+        "INSERT INTO account_donate (id, bonuses, votes, totalBonuses, totalVotes) VALUES (?, ?, ?, ?, ?)",
+        CONNECTION_ASYNC);
 }
 
 LoginDatabaseConnection::LoginDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

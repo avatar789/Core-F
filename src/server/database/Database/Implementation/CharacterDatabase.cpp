@@ -649,6 +649,11 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     // By providing the realm ID explicitly, this ensures that mysql reverse proxy will use
     // correct realm database for the transaction.
     PrepareStatement(CHAR_NO_OP_PROVIDE_REALM_CONTEXT, "SELECT ? AS no_op", CONNECTION_ASYNC);
+
+    PrepareStatement(CHAR_DEL_TRANSMOGRIFICATION_INFO, "DELETE FROM item_transmogrification WHERE item = ?",
+        CONNECTION_ASYNC);
+    PrepareStatement(CHAR_INS_TRANSMOGRIFICATION_INFO,
+        "INSERT INTO item_transmogrification (item, transEntry) VALUES (?, ?)", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

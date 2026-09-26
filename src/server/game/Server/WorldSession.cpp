@@ -107,8 +107,9 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 }
 
 /// WorldSession constructor
-WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion,
-    time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter, bool skipQueue, uint32 TotalTime) :
+WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock,
+    AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter,
+    bool skipQueue, uint32 TotalTime, bool isPremium, bool isPremium1) :
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
@@ -154,6 +155,8 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, s
 
     _timeSyncNextCounter = 0;
     _timeSyncTimer = 0;
+    _isPremium = isPremium;
+    _isPremium1 = isPremium1;
 
     if (sock)
     {
@@ -407,6 +410,20 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
     {
         CheckPlayedTimeLimit(Seconds(currentTime));
         _lastUpdateTime = Seconds(currentTime);
+    }
+
+    if (_player && _player->IsInWorld())
+    {
+        uint32 interval = sWorld->getIntConfig(CONFIG_SHOP_INTERVAL_UPDATE);
+        if (interval)
+        {
+            _sessionShopUpdate += diff;
+            if (_sessionShopUpdate > interval)
+            {
+                LoadAccountStore(sWorld->FindShopCurrency(GetAccountId()));
+                _sessionShopUpdate = 0;
+            }
+        }
     }
 
     constexpr uint32 MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE = 150;
@@ -1530,6 +1547,137 @@ void WorldSession::SendTimeSync()
     // Schedule next sync in 10 sec (except for the 2 first packets, which are spaced by only 5s)
     _timeSyncTimer = _timeSyncNextCounter == 0 ? 5000 : 10000;
     _timeSyncNextCounter++;
+}
+
+void WorldSession::LoadAccountStore(PlayerDonate data)
+{
+    _balance = int32(data.balance);
+    _vote = int32(data.vote);
+}
+
+bool WorldSession::SetAccountCurrency(int32 currency, uint8 moneyId, bool isProfession)
+{
+    if (isProfession)
+        return true;
+
+    if (moneyId == 1)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_BONUS);
+        stmt->SetData(0, GetAccountId());
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+        if (!result)
+            return false;
+
+        int32 updated = result->Fetch()[0].Get<int32>() - currency;
+        if (updated < 0)
+            return false;
+
+        _balance = updated;
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_BALANCE);
+        stmt->SetData(0, _balance);
+        stmt->SetData(1, GetAccountId());
+        LoginDatabase.Execute(stmt);
+        return true;
+    }
+
+    if (moneyId == 2)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_VOTE);
+        stmt->SetData(0, GetAccountId());
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+        if (!result)
+            return false;
+
+        int32 updated = result->Fetch()[0].Get<int32>() - currency;
+        if (updated < 0)
+            return false;
+
+        _vote = updated;
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_VOTE);
+        stmt->SetData(0, _vote);
+        stmt->SetData(1, GetAccountId());
+        LoginDatabase.Execute(stmt);
+        return true;
+    }
+
+    return false;
+}
+
+bool WorldSession::AddDonateBonusOrVote(int32 currency, uint8 moneyId, bool isProfession)
+{
+    if (isProfession)
+        return true;
+
+    if (moneyId == 1)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_BONUS);
+        stmt->SetData(0, GetAccountId());
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+        if (result)
+        {
+            int32 updated = result->Fetch()[0].Get<int32>() + currency;
+            if (updated < 0)
+                return false;
+
+            _balance = updated;
+            stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_BALANCE);
+            stmt->SetData(0, _balance);
+            stmt->SetData(1, GetAccountId());
+            LoginDatabase.Execute(stmt);
+            return true;
+        }
+
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_INSERT_STORE_BALANCE);
+        stmt->SetData(0, GetAccountId());
+        stmt->SetData(1, currency);
+        stmt->SetData(2, 0);
+        stmt->SetData(3, 0);
+        stmt->SetData(4, 0);
+        LoginDatabase.Execute(stmt);
+        _balance = currency;
+        return true;
+    }
+
+    if (moneyId == 2)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_VOTE);
+        stmt->SetData(0, GetAccountId());
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+        if (!result)
+            return false;
+
+        int32 updated = result->Fetch()[0].Get<int32>() + currency;
+        if (updated < 0)
+            return false;
+
+        _vote = updated;
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_VOTE);
+        stmt->SetData(0, _vote);
+        stmt->SetData(1, GetAccountId());
+        LoginDatabase.Execute(stmt);
+        return true;
+    }
+
+    return false;
+}
+
+void WorldSession::WritePurchaseToLogs(WorldSession* session, std::string const& service, uint32 item, uint32 count,
+    uint32 price, uint32 time)
+{
+    Player* player = session ? session->GetPlayer() : nullptr;
+    if (!player || !session)
+        return;
+
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_STORE_LOGS);
+    stmt->SetData(0, player->GetGUID().GetCounter());
+    stmt->SetData(1, player->GetName());
+    stmt->SetData(2, session->GetAccountId());
+    stmt->SetData(3, service);
+    stmt->SetData(4, item);
+    stmt->SetData(5, count);
+    stmt->SetData(6, price);
+    stmt->SetData(7, time);
+    LoginDatabase.Execute(stmt);
 }
 
 class AccountInfoQueryHolderPerRealm : public CharacterDatabaseQueryHolder

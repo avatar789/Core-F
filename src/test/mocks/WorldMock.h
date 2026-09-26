@@ -86,6 +86,25 @@ public:
     MOCK_METHOD(void, SetRealmName, (std::string name), ());
     MOCK_METHOD(void, RemoveOldCorpses, ());
     MOCK_METHOD(void, ReloadRBAC, ());
+
+    void LoadShop() override { }
+    void LoadDonateCurrency() override { }
+    PlayerDonate FindShopCurrency(uint32 /*accountId*/) const override { return {}; }
+    uint32 GetStoreItems() const override { return 0; }
+    std::map<int32, StoreItemData> const& GetStoreItem() const override { return _storeItems; }
+    std::map<int32, StoreSpecialOfferData> const& GetStoreSpecialOffer() const override { return _storeOffers; }
+    std::multimap<int32, StoreSpecialOfferDetailsData> const& GetStoreSpecialDetails() const override
+    {
+        return _storeOfferDetails;
+    }
+    std::map<int32, CollectionMountData> const& GetStoreCollection() const override { return _storeMounts; }
+    uint32 GetShopVersion() const override { return 0; }
+
+private:
+    std::map<int32, StoreItemData> _storeItems;
+    std::map<int32, StoreSpecialOfferData> _storeOffers;
+    std::multimap<int32, StoreSpecialOfferDetailsData> _storeOfferDetails;
+    std::map<int32, CollectionMountData> _storeMounts;
 };
 #pragma GCC diagnostic pop
 

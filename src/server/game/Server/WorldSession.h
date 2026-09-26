@@ -431,7 +431,7 @@ class WorldSession
 public:
     WorldSession(uint32 id, std::string&& name, uint32 accountFlags, std::shared_ptr<WorldSocket> sock,
         AccountTypes sec, uint8 expansion, time_t mute_time, LocaleConstant locale, uint32 recruiter, bool isARecruiter,
-        bool skipQueue, uint32 TotalTime);
+        bool skipQueue, uint32 TotalTime, bool isPremium = false, bool isPremium1 = false);
     ~WorldSession();
 
     uint32 GetAccountFlags() const { return _accountFlags; }
@@ -488,6 +488,16 @@ public:
     void SendClientCacheVersion(uint32 version);
 
     AccountTypes GetSecurity() const { return _security; }
+    [[nodiscard]] bool IsPremium() const { return _isPremium; }
+    [[nodiscard]] bool IsPremium1() const { return _isPremium1; }
+
+    void LoadAccountStore(PlayerDonate data);
+    bool SetAccountCurrency(int32 currency, uint8 moneyId, bool isProfession);
+    bool AddDonateBonusOrVote(int32 currency, uint8 moneyId, bool isProfession);
+    [[nodiscard]] int32 GetAccountBalance() const { return _balance; }
+    [[nodiscard]] int32 GetAccountVote() const { return _vote; }
+    void WritePurchaseToLogs(WorldSession* session, std::string const& service, uint32 item, uint32 count, uint32 price,
+        uint32 time);
     bool CanSkipQueue() const { return _skipQueue; }
 
     // RBAC
@@ -796,6 +806,7 @@ public:                                                 // opcodes handlers
     void HandleTimeQueryOpcode(WorldPackets::Query::TimeQuery& packet);
 
     void HandleCreatureQueryOpcode(WorldPacket& recvPacket);
+    void ShopCreatureOpcode(uint32 entry);
 
     void HandleGameObjectQueryOpcode(WorldPacket& recvPacket);
 
@@ -1300,6 +1311,8 @@ private:
     rbac::RBACData* _RBACData;
     std::string _accountName;
     uint32 _accountFlags;
+    bool _isPremium = false;
+    bool _isPremium1 = false;
     uint8 m_expansion;
     uint32 m_total_time;
 
@@ -1344,6 +1357,10 @@ private:
     std::map<uint32, uint32> _pendingTimeSyncRequests; // key: counter. value: server time when packet with that counter was sent.
     uint32 _timeSyncNextCounter;
     uint32 _timeSyncTimer;
+
+    uint32 _sessionShopUpdate = 0;
+    int32 _balance = 0;
+    int32 _vote = 0;
 
     uint32 _orderCounter;
 

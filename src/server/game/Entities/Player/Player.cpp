@@ -426,6 +426,153 @@ Player::Player(WorldSession* session): Unit(), m_mover(this), _cinematicMgr(*thi
     _mapChangeOrderCounter = 0;
 }
 
+void Player::SendAddonMessage(std::string_view message) const
+{
+    if (!GetSession())
+        return;
+
+    WorldPacket data;
+    ChatHandler::BuildChatPacket(data, CHAT_MSG_SYSTEM, LANG_ADDON, this, this, message);
+    GetSession()->SendPacket(&data);
+}
+
+bool Player::PlayerAlreadyHasTwoProfessions(Player const* player) const
+{
+    uint32 skillCount = 0;
+    for (uint32 i = 1; i < sSkillLineStore.GetNumRows(); ++i)
+    {
+        SkillLineEntry const* skillInfo = sSkillLineStore.LookupEntry(i);
+        if (!skillInfo)
+            continue;
+
+        if (skillInfo->categoryId != SKILL_CATEGORY_PROFESSION)
+            continue;
+
+        bool gathering = skillInfo->id == SKILL_MINING || skillInfo->id == SKILL_SKINNING
+            || skillInfo->id == SKILL_HERBALISM;
+        if (!skillInfo->canLink && !gathering)
+            continue;
+
+        if (player->HasSkill(skillInfo->id))
+            ++skillCount;
+
+        if (skillCount >= 2)
+            return true;
+    }
+
+    return false;
+}
+
+bool Player::IsSecondarySkill(SkillType skill) const
+{
+    return skill == SKILL_COOKING || skill == SKILL_FIRST_AID || skill == SKILL_FISHING;
+}
+
+void Player::LearnSkillRecipesHelper(Player* player, uint32 skillId)
+{
+    uint32 classMask = player->getClassMask();
+    for (uint32 j = 0; j < sSkillLineAbilityStore.GetNumRows(); ++j)
+    {
+        SkillLineAbilityEntry const* skillLine = sSkillLineAbilityStore.LookupEntry(j);
+        if (!skillLine)
+            continue;
+
+        if (skillLine->SkillLine != skillId)
+            continue;
+
+        if (skillLine->SupercededBySpell)
+            continue;
+
+        if (skillLine->RaceMask != 0)
+            continue;
+
+        if (skillLine->ClassMask && (skillLine->ClassMask & classMask) == 0)
+            continue;
+
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(skillLine->Spell);
+        if (!spellInfo || !SpellMgr::IsSpellValid(spellInfo))
+            continue;
+
+        SpellEffectInfo const& effect = spellInfo->GetEffect(EFFECT_0);
+        if ((effect.IsEffect(SPELL_EFFECT_CREATE_ITEM) || effect.IsEffect(SPELL_EFFECT_CREATE_ITEM_2))
+            && effect.ItemType)
+            continue;
+
+        if (effect.IsEffect(SPELL_EFFECT_ENCHANT_ITEM))
+            continue;
+
+        player->learnSpell(skillLine->Spell);
+    }
+}
+
+bool Player::LearnAllRecipesInProfession(Player* player, SkillType skill)
+{
+    SkillLineEntry const* skillInfo = sSkillLineStore.LookupEntry(skill);
+    if (!skillInfo)
+        return false;
+
+    LearnSkillRecipesHelper(player, skillInfo->id);
+
+    uint16 maxLevel = player->GetPureMaxSkillValue(skillInfo->id);
+    player->SetSkill(skillInfo->id, player->GetSkillStep(skillInfo->id), maxLevel, maxLevel);
+    return true;
+}
+
+void Player::CalculateAverageItemLevel()
+{
+    float sum = 0;
+    uint32 count = 0;
+    float weaponSum = 0;
+    uint32 weaponCount = 0;
+
+    for (uint8 i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
+    {
+        if (i == EQUIPMENT_SLOT_TABARD || i == EQUIPMENT_SLOT_BODY)
+            continue;
+
+        switch (i)
+        {
+            case EQUIPMENT_SLOT_OFFHAND:
+                if (IsTwoHandUsed())
+                    continue;
+                if (!CanDualWield() && (getClass() == CLASS_HUNTER || getClass() == CLASS_ROGUE
+                    || getClass() == CLASS_DEATH_KNIGHT))
+                    continue;
+                [[fallthrough]];
+            case EQUIPMENT_SLOT_MAINHAND:
+                if (m_items[i] && m_items[i]->GetTemplate())
+                {
+                    uint32 itemLevel = m_items[i]->GetTemplate()->ItemLevel;
+                    if (m_items[i]->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM && GetLevel() == 80)
+                        itemLevel = 200;
+                    weaponSum += itemLevel;
+                }
+                ++weaponCount;
+                break;
+            default:
+                if (m_items[i] && m_items[i]->GetTemplate())
+                {
+                    uint32 itemLevel = m_items[i]->GetTemplate()->ItemLevel;
+                    if (m_items[i]->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM && GetLevel() == 80)
+                        itemLevel = 200;
+                    sum += itemLevel;
+                }
+                ++count;
+                break;
+        }
+    }
+
+    if (!weaponCount || !count)
+    {
+        m_averageItemLevel = 0;
+        return;
+    }
+
+    sum += weaponSum / weaponCount;
+    ++count;
+    m_averageItemLevel = uint16(sum / count);
+}
+
 Player::~Player()
 {
     sScriptMgr->OnDestructPlayer(this);
@@ -5990,6 +6137,8 @@ void Player::CheckAreaExploreAndOutdoor()
                 }
 
                 sScriptMgr->OnPlayerGiveXP(this, XP, nullptr, PlayerXPSource::XPSOURCE_EXPLORE);
+                if (GetSession()->IsPremium())
+                    XP = uint32(XP * sWorld->getRate(RATE_XP_EXPLORE_PREMIUM));
                 GiveXP(XP, nullptr);
                 SendExplorationExperience(areaId, XP);
             }
@@ -6366,6 +6515,8 @@ bool Player::RewardHonor(Unit* uVictim, uint32 groupsize, int32 honor, bool awar
     }
 
     honor_f *= sWorld->getRate(RATE_HONOR);
+    if (GetSession()->IsPremium())
+        honor_f *= sWorld->getRate(RATE_HONOR_PREMIUM);
     // Back to int now
     honor = int32(honor_f);
     // honor - for show honor points in log

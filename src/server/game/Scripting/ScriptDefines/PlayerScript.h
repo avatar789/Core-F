@@ -235,6 +235,8 @@ enum PlayerHook
     PLAYERHOOK_ON_BEFORE_RECEIVE_SPELL_LIST_FROM_TRAINER,
     PLAYERHOOK_ON_GET_TRAINER_SPELL_STATE,
     PLAYERHOOK_ON_AFTER_TRAIN_SPELL,
+    PLAYERHOOK_ON_PLAYER_EQUIP_ITEM,
+    PLAYERHOOK_ON_PLAYER_UNEQUIP_ITEM,
     PLAYERHOOK_END
 };
 
@@ -442,8 +444,14 @@ public:
     // After an item has been equipped
     virtual void OnPlayerEquip(Player* /*player*/, Item* /*it*/, uint8 /*bag*/, uint8 /*slot*/, bool /*update*/) { }
 
+    // Called when a player equips an item
+    virtual void OnPlayerEquipItem(Player* /*player*/, uint32 /*itemEntry*/) { }
+
     // After an item has been unequipped
     virtual void OnPlayerUnequip(Player* /*player*/, Item* /*it*/) { }
+
+    // Called when a player unequips an item
+    virtual void OnPlayerUnEquipItem(Player* /*player*/, uint32 /*itemEntry*/) { }
 
     // After player enters queue for BG
     virtual void OnPlayerJoinBG(Player* /*player*/) { }

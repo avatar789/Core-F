@@ -24,6 +24,7 @@
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
 #include "WorldConfig.h"
+#include <map>
 #include <unordered_map>
 
 class WorldPacket;
@@ -58,6 +59,58 @@ enum ServerMessageType
     SERVER_MSG_SHUTDOWN_CANCELLED = 4,
     SERVER_MSG_RESTART_CANCELLED  = 5
 };
+
+struct PlayerDonate
+{
+    uint32 balance = 0;
+    uint32 vote = 0;
+};
+
+struct StoreItemData
+{
+    uint32 itemEntry = 0;
+    uint32 count = 0;
+    uint32 price = 0;
+    uint8 discount = 0;
+    uint32 discountPrice = 0;
+    uint32 creatureEntry = 0;
+    uint32 storeFlags = 0;
+    uint8 CategoryID = 0;
+    uint8 SubCategoryID = 0;
+    uint8 MoneyID = 0;
+};
+
+struct StoreSpecialOfferData
+{
+    std::string background;
+    std::string headline;
+    std::string title;
+    std::string description;
+    std::string detailsTitle;
+    uint32 details = 0;
+    uint32 time = 0;
+    uint32 productID = 0;
+    uint32 itemEntry = 0;
+    uint32 price = 0;
+};
+
+struct StoreSpecialOfferDetailsData
+{
+    uint32 itemID = 0;
+    uint32 role = 0;
+    uint32 count = 0;
+};
+
+struct CollectionMountData
+{
+    uint32 id = 0;
+    std::string hash;
+    uint8 currency = 0;
+    uint32 price = 0;
+    uint32 productID = 0;
+};
+
+typedef std::map<uint32, PlayerDonate> PlayerDonateMap;
 
 class IWorld
 {
@@ -111,6 +164,17 @@ public:
     [[nodiscard]] virtual std::string const& GetRealmName() const = 0;
     virtual void SetRealmName(std::string name) = 0;
     virtual void ReloadRBAC() = 0;
+
+    virtual void LoadShop() = 0;
+    virtual void LoadDonateCurrency() = 0;
+    virtual PlayerDonate FindShopCurrency(uint32 accountId) const = 0;
+    [[nodiscard]] virtual uint32 GetStoreItems() const = 0;
+    [[nodiscard]] virtual std::map<int32, StoreItemData> const& GetStoreItem() const = 0;
+    [[nodiscard]] virtual std::map<int32, StoreSpecialOfferData> const& GetStoreSpecialOffer() const = 0;
+    [[nodiscard]] virtual std::multimap<int32, StoreSpecialOfferDetailsData> const&
+        GetStoreSpecialDetails() const = 0;
+    [[nodiscard]] virtual std::map<int32, CollectionMountData> const& GetStoreCollection() const = 0;
+    [[nodiscard]] virtual uint32 GetShopVersion() const = 0;
 };
 
 #endif //AZEROTHCORE_IWORLD_H

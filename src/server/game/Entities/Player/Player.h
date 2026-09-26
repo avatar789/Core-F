@@ -38,6 +38,7 @@
 #include "QuestDef.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
+#include "StringFormat.h"
 #include "TradeData.h"
 #include "Unit.h"
 #include "WorldSession.h"
@@ -1193,6 +1194,11 @@ public:
 
     void GiveXP(uint32 xp, Unit* victim, float group_rate = 1.0f, bool isLFGReward = false);
     void GiveLevel(uint8 level);
+
+    bool PlayerAlreadyHasTwoProfessions(Player const* player) const;
+    bool IsSecondarySkill(SkillType skill) const;
+    void LearnSkillRecipesHelper(Player* player, uint32 skillId);
+    bool LearnAllRecipesInProfession(Player* player, SkillType skill);
 
     void InitStatsForLevel(bool reapplyMods = false);
 
@@ -2660,6 +2666,16 @@ public:
     [[nodiscard]] uint32 GetNextSave() const { return m_nextSave; }
     [[nodiscard]] SpellModContainer const& GetSpellModList(uint32 type) const { return m_spellMods[type]; }
 
+    void SendAddonMessage(std::string_view message) const;
+    template<typename... Args>
+    void SendAddonMessage(std::string_view fmt, Args&&... args) const
+    {
+        SendAddonMessage(Acore::StringFormat(fmt, std::forward<Args>(args)...));
+    }
+
+    [[nodiscard]] uint64 GetCurrentTransmogrifier() const { return m_currentTransmogrifier; }
+    void SetCurrentTransmogrifier(uint64 guid) { m_currentTransmogrifier = guid; }
+
     void SetServerSideVisibility(ServerSideVisibilityType type, AccountTypes sec);
     void SetServerSideVisibilityDetect(ServerSideVisibilityType type, AccountTypes sec);
 
@@ -2679,6 +2695,9 @@ public:
     void UpdatePlayerSetting(std::string const& source, uint32 index, uint32 value);
 
     void SendSystemMessage(std::string_view msg, bool escapeCharacters = false);
+
+    void CalculateAverageItemLevel();
+    [[nodiscard]] uint16 GetAverageItemLevel() const { return m_averageItemLevel; }
 
     std::string GetDebugInfo() const override;
 
@@ -3059,6 +3078,9 @@ private:
     uint32 _pendingBindTimer;
 
     uint32 _activeCheats;
+
+    uint64 m_currentTransmogrifier = 0;
+    uint16 m_averageItemLevel = 0;
 
     // duel health and mana reset attributes
     uint32 healthBeforeDuel;

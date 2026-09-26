@@ -39,6 +39,8 @@
 #include "Weather.h"
 #include "WeatherMgr.h"
 #include "WorldState.h"
+#include "ObjectAccessor.h"
+#include "TransmogrificationMgr.h"
 #include "WorldStatePackets.h"
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
@@ -54,6 +56,13 @@ void Player::Update(uint32 p_time)
 {
     if (!IsInWorld())
         return;
+
+    if (GetCurrentTransmogrifier())
+    {
+        Creature* creature = ObjectAccessor::GetCreature(*this, ObjectGuid(GetCurrentTransmogrifier()));
+        if (!creature || !creature->IsWithinDistInMap(this, INTERACTION_DISTANCE))
+            sTransmogrificationMgr->SendTransmogrificationMenuCloseTo(this);
+    }
 
     sScriptMgr->OnPlayerBeforeUpdate(this, p_time);
 

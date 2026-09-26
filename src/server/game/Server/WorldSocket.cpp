@@ -710,8 +710,24 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
 
     sScriptMgr->OnLastIpUpdate(account.Id, address);
 
+    bool isPremium = false;
+    bool isPremium1 = false;
+
+    LoginDatabasePreparedStatement* premiumStmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_PREMIUM);
+    premiumStmt->SetData(0, account.Id);
+    if (LoginDatabase.Query(premiumStmt))
+        isPremium = true;
+
+    LoginDatabasePreparedStatement* vipStmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_PREMIUM1);
+    vipStmt->SetData(0, account.Id);
+    if (LoginDatabase.Query(vipStmt))
+        isPremium1 = true;
+
     _worldSession = new WorldSession(account.Id, std::move(authSession->Account), account.Flags, shared_from_this(), account.Security,
-        account.Expansion, account.MuteTime, account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime);
+        account.Expansion, account.MuteTime, account.Locale, account.Recruiter, account.IsRectuiter, account.Security ? true : false, account.TotalTime,
+        isPremium, isPremium1);
+
+    _worldSession->LoadAccountStore(sWorld->FindShopCurrency(account.Id));
 
     _worldSession->ReadAddonsInfo(authSession->AddonInfo);
 

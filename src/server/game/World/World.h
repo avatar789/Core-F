@@ -240,6 +240,25 @@ public:
     [[nodiscard]] std::string const& GetRealmName() const override { return _realmName; } // pussywizard
     void SetRealmName(std::string name) override { _realmName = name; } // pussywizard
 
+    void LoadShop() override;
+    void LoadDonateCurrency() override;
+    PlayerDonate FindShopCurrency(uint32 accountId) const override;
+    [[nodiscard]] uint32 GetStoreItems() const override { return _shopItemCount; }
+    [[nodiscard]] std::map<int32, StoreItemData> const& GetStoreItem() const override { return _storeItems; }
+    [[nodiscard]] std::map<int32, StoreSpecialOfferData> const& GetStoreSpecialOffer() const override
+    {
+        return _storeOffers;
+    }
+    [[nodiscard]] std::multimap<int32, StoreSpecialOfferDetailsData> const& GetStoreSpecialDetails() const override
+    {
+        return _storeOfferDetails;
+    }
+    [[nodiscard]] std::map<int32, CollectionMountData> const& GetStoreCollection() const override
+    {
+        return _storeMounts;
+    }
+    [[nodiscard]] uint32 GetShopVersion() const override { return _shopVersion; }
+
 protected:
     void _UpdateGameTime();
     bool RescheduleShutdownForWintergrasp();
@@ -302,6 +321,15 @@ private:
     // used versions
     std::string _dbVersion;
     uint32 _dbClientCacheVersion;
+
+    uint32 _shopUpdate = 0;
+    uint32 _shopVersion = 0;
+    uint32 _shopItemCount = 0;
+    std::map<int32, StoreItemData> _storeItems;
+    std::map<int32, StoreSpecialOfferData> _storeOffers;
+    std::multimap<int32, StoreSpecialOfferDetailsData> _storeOfferDetails;
+    std::map<int32, CollectionMountData> _storeMounts;
+    PlayerDonateMap _playerDonate;
 
     void ProcessQueryCallbacks();
     QueryCallbackProcessor _queryProcessor;
