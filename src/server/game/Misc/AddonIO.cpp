@@ -191,6 +191,14 @@ namespace
             player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
+    void SendShopBalance(Player* player)
+    {
+        WorldSession* session = player->GetSession();
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:{}:0:{}:0:0",
+            session->GetAccountBalance(), session->GetAccountVote(), session->GetPremiumUnsetTime(),
+            session->GetVipUnsetTime()));
+    }
+
     uint8 ShopPaidService(Player* player, uint32 itemId, uint32 count, uint8 moneyId, uint32 cost, bool isProfession)
     {
         WorldSession* session = player->GetSession();
@@ -310,6 +318,18 @@ namespace
                 break;
             case PAID_SERVICE_LEVELUP:
                 player->GiveLevel(uint8(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)));
+                break;
+            case PAID_SERVICE_PREMIUM_ONE_DAY:
+                if (count == 0 || count > 3650 || !session->AddVipTime(count * uint32(DAY)))
+                {
+                    session->AddDonateBonusOrVote(int32(cost), moneyId, false);
+                    response = 1;
+                }
+                else
+                {
+                    session->WritePurchaseToLogs(session, "VIP_BUY", 0, count, cost, ShopNow());
+                    SendShopBalance(player);
+                }
                 break;
             default:
                 break;
@@ -543,9 +563,7 @@ void AddonIO::HandleShopBalanceRequest(Player* player, std::string const& /*body
     if (!player)
         return;
 
-    WorldSession* session = player->GetSession();
-    player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:0:0:0:0:0",
-        session->GetAccountBalance(), session->GetAccountVote()));
+    SendShopBalance(player);
 }
 
 void AddonIO::HandleShopItemListRequest(Player* player, std::string const& /*body*/)
@@ -623,7 +641,7 @@ void AddonIO::HandleShopBuyItemRequest(Player* player, std::string const& body)
                 continue;
 
             item = it.second.itemEntry;
-            cost = it.second.discountPrice;
+            cost = it.second.discountPrice > 0 ? it.second.discountPrice : it.second.price;
             dbCount = it.second.count;
             moneyId = it.second.MoneyID;
             if (par.size() > 1)

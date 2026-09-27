@@ -184,6 +184,19 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_INSERT_STORE_BALANCE,
         "INSERT INTO account_donate (id, bonuses, votes, totalBonuses, totalVotes) VALUES (?, ?, ?, ?, ?)",
         CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_SEL_ACCOUNT_PREMIUM_TIME,
+        "SELECT setdate, unsetdate FROM account_premium WHERE id = ? AND active = 1 "
+        "ORDER BY unsetdate DESC LIMIT 1",
+        CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_SEL_ACCOUNT_VIP_TIME,
+        "SELECT setdate, unsetdate FROM account_vip WHERE id = ? AND active = 1 "
+        "ORDER BY unsetdate DESC LIMIT 1",
+        CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_UPD_ACCOUNT_VIP_TIME,
+        "UPDATE account_vip SET unsetdate = ?, active = 1 WHERE id = ? AND setdate = ?", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_INS_ACCOUNT_VIP,
+        "INSERT INTO account_vip (id, setdate, unsetdate, premium_type, active) VALUES (?, ?, ?, 1, 1)",
+        CONNECTION_ASYNC);
 }
 
 LoginDatabaseConnection::LoginDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

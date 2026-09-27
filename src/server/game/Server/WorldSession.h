@@ -496,6 +496,10 @@ public:
     bool AddDonateBonusOrVote(int32 currency, uint8 moneyId, bool isProfession);
     [[nodiscard]] int32 GetAccountBalance() const { return _balance; }
     [[nodiscard]] int32 GetAccountVote() const { return _vote; }
+    [[nodiscard]] uint32 GetPremiumUnsetTime() const { return _premiumUnset; }
+    [[nodiscard]] uint32 GetVipUnsetTime() const { return _vipUnset; }
+    void LoadSubscriptionTimes();
+    bool AddVipTime(uint32 seconds);
     void WritePurchaseToLogs(WorldSession* session, std::string const& service, uint32 item, uint32 count, uint32 price,
         uint32 time);
     bool CanSkipQueue() const { return _skipQueue; }
@@ -1313,6 +1317,8 @@ private:
     uint32 _accountFlags;
     bool _isPremium = false;
     bool _isPremium1 = false;
+    uint32 _premiumUnset = 0;
+    uint32 _vipUnset = 0;
     uint8 m_expansion;
     uint32 m_total_time;
 

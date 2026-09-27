@@ -728,6 +728,7 @@ void WorldSocket::HandleAuthSessionCallback(std::shared_ptr<ClientAuthSession> a
         isPremium, isPremium1);
 
     _worldSession->LoadAccountStore(sWorld->FindShopCurrency(account.Id));
+    _worldSession->LoadSubscriptionTimes();
 
     _worldSession->ReadAddonsInfo(authSession->AddonInfo);
 
