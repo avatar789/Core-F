@@ -251,6 +251,15 @@ namespace
             PremiumSecondsLeft(player)));
     }
 
+    void SendShopBalance(Player* player)
+    {
+        WorldSession* session = player->GetSession();
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:{}:0:{}:0:0",
+            session->GetAccountBalance(), session->GetAccountVote(), PremiumSecondsLeft(player),
+            session->GetVipUnsetTime()));
+        SendPremiumInfo(player);
+    }
+
     void SendPremiumPurchase(Player* player, uint8 response)
     {
         if (response == 0)
@@ -260,15 +269,6 @@ namespace
             response, PremiumSecondsLeft(player)));
         player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}",
             response, PAID_SERVICE_PREMIUM_ONE_DAY));
-    }
-
-    void SendShopBalance(Player* player)
-    {
-        WorldSession* session = player->GetSession();
-        player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:{}:0:{}:0:0",
-            session->GetAccountBalance(), session->GetAccountVote(), PremiumSecondsLeft(player),
-            session->GetVipUnsetTime()));
-        SendPremiumInfo(player);
     }
 
     uint8 ShopPaidService(Player* player, uint32 itemId, uint32 count, uint8 moneyId, uint32 cost, bool isProfession)
