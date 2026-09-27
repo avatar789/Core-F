@@ -37,6 +37,8 @@ public:
     void HandleTransmogrificationApply(Player* player, std::string const& body);
 
     void HandleShopBalanceRequest(Player* player, std::string const& body);
+    void HandlePremiumInfoRequest(Player* player, std::string const& body);
+    void HandlePremiumRenewRequest(Player* player, std::string const& body);
     void HandleShopItemListRequest(Player* player, std::string const& body);
     void HandleShopVersionRequest(Player* player, std::string const& body);
     void HandleShopBuyItemRequest(Player* player, std::string const& body);

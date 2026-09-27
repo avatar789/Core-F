@@ -70,6 +70,9 @@ namespace
         { "ACMSG_TRANSMOGRIFICATION_APPLY",           &AddonIO::HandleTransmogrificationApply },
         { "ACMSG_AVERAGE_ITEM_LEVEL_REQUEST",         &AddonIO::HandleAverageItemLevelRequest },
         { "ACMSG_SHOP_BALANCE_REQUEST",               &AddonIO::HandleShopBalanceRequest },
+        { "ACMSG_PREMIUM_INFO_REQUEST",               &AddonIO::HandlePremiumInfoRequest },
+        { "ACMSG_PREMIUM_RENEW_REQUEST",              &AddonIO::HandlePremiumRenewRequest },
+        { "ACMSG_SHOP_SUBSCRIBE",                     &AddonIO::HandlePremiumRenewRequest },
         { "ACMSG_SHOP_ITEM_LIST_REQUEST",             &AddonIO::HandleShopItemListRequest },
         { "ACMSG_SHOP_VERSION",                       &AddonIO::HandleShopVersionRequest },
         { "ACMSG_SHOP_BUY_ITEM",                      &AddonIO::HandleShopBuyItemRequest },
@@ -144,6 +147,47 @@ namespace
         return uint32(GameTime::GetGameTime().count());
     }
 
+    struct PremiumOffer
+    {
+        uint32 id;
+        uint32 cost;
+        uint32 seconds;
+    };
+
+    PremiumOffer const PremiumOffers[] =
+    {
+        { 1, 1, uint32(DAY) },
+        { 2, 6, 7 * uint32(DAY) },
+        { 3, 12, 14 * uint32(DAY) },
+        { 4, 25, 30 * uint32(DAY) }
+    };
+
+    PremiumOffer const* FindPremiumOffer(uint32 id)
+    {
+        for (PremiumOffer const& offer : PremiumOffers)
+            if (offer.id == id)
+                return &offer;
+
+        return nullptr;
+    }
+
+    uint8 PurchasePremium(Player* player, PremiumOffer const& offer)
+    {
+        WorldSession* session = player->GetSession();
+        if (!session->SetAccountCurrency(int32(offer.cost), 1, false))
+            return 1;
+
+        if (!session->AddPremiumTime(offer.seconds))
+        {
+            session->AddDonateBonusOrVote(int32(offer.cost), 1, false);
+            return 1;
+        }
+
+        session->WritePurchaseToLogs(session, "PREMIUM_BUY", offer.id, offer.seconds / uint32(DAY), offer.cost,
+            ShopNow());
+        return 0;
+    }
+
     uint8 ShopAddItem(Player* player, Player* receiver, uint32 itemId, uint32 count, uint8 moneyId, uint32 cost,
         std::string const& text = "")
     {
@@ -191,12 +235,19 @@ namespace
             player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
+    void SendPremiumInfo(Player* player)
+    {
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_INFO_RESPONSE\t{}",
+            player->GetSession()->GetPremiumUnsetTime()));
+    }
+
     void SendShopBalance(Player* player)
     {
         WorldSession* session = player->GetSession();
         player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:{}:0:{}:0:0",
             session->GetAccountBalance(), session->GetAccountVote(), session->GetPremiumUnsetTime(),
             session->GetVipUnsetTime()));
+        SendPremiumInfo(player);
     }
 
     uint8 ShopPaidService(Player* player, uint32 itemId, uint32 count, uint8 moneyId, uint32 cost, bool isProfession)
@@ -419,14 +470,14 @@ void AddonIO::HandleMessage(Player* player, std::string const& message)
         return;
 
     std::vector<std::string> args = SplitAddonArgs(message, "\t");
-    if (args.size() != 2)
+    if (args.empty() || args.size() > 2)
         return;
 
     auto itr = addonMessagesTable.find(args[0]);
     if (itr == addonMessagesTable.end())
         return;
 
-    (this->*itr->second)(player, args[1]);
+    (this->*itr->second)(player, args.size() == 2 ? args[1] : std::string());
 }
 
 void AddonIO::HandleTransmogrificationInfoRequest(Player* player, std::string const& body)
@@ -563,6 +614,34 @@ void AddonIO::HandleShopBalanceRequest(Player* player, std::string const& /*body
     SendShopBalance(player);
 }
 
+void AddonIO::HandlePremiumInfoRequest(Player* player, std::string const& /*body*/)
+{
+    if (!player)
+        return;
+
+    SendPremiumInfo(player);
+}
+
+void AddonIO::HandlePremiumRenewRequest(Player* player, std::string const& body)
+{
+    if (!player || body.empty())
+        return;
+
+    try
+    {
+        PremiumOffer const* offer = FindPremiumOffer(uint32(std::stoul(body)));
+        uint8 response = offer ? PurchasePremium(player, *offer) : 1;
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_RENEW_RESPONSE\t{}:{}",
+            response, player->GetSession()->GetPremiumUnsetTime()));
+        if (response == 0)
+            SendShopBalance(player);
+    }
+    catch (std::exception const&)
+    {
+        return;
+    }
+}
+
 void AddonIO::HandleShopItemListRequest(Player* player, std::string const& /*body*/)
 {
     if (!player || !sWorld->getBoolConfig(CONFIG_SHOP_ENABLE))
@@ -626,6 +705,16 @@ void AddonIO::HandleShopBuyItemRequest(Player* player, std::string const& body)
         std::vector<std::string> par = SplitAddonArgs(body, ":");
         if (par.empty())
             return;
+
+        if (PremiumOffer const* offer = FindPremiumOffer(uint32(std::stoul(par[0]))))
+        {
+            response = PurchasePremium(player, *offer);
+            item = offer->id;
+            player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}", response, item));
+            if (response == 0)
+                SendShopBalance(player);
+            return;
+        }
 
         uint32 cost = 0;
         uint32 count = 1;
