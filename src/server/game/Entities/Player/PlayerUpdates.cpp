@@ -1336,6 +1336,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
     // in PvE, only opposition team capital
     switch (zone->team)
     {
+    /* FACTION FREE MOD by GITDALISAR
+    ---- START COMMENTING OUT FACTIONAL CHECK FOR CITIES ----
     case AREATEAM_ALLY:
         pvpInfo.IsInHostileArea =
             GetTeamId(true) != TEAM_ALLIANCE &&
@@ -1346,6 +1348,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea, bool force)
             GetTeamId(true) != TEAM_HORDE &&
             (sWorld->IsPvPRealm() || zone->flags & AREA_FLAG_CAPITAL);
         break;
+    ---- STOP COMMENTING OUT FACTIONAL CHECK FOR CITITES ----
+    END CHANGES FOR FACTION FREE MOD by GITDALISAR */
     case AREATEAM_NONE:
         // overwrite for battlegrounds, maybe batter some zone flags but current
         // known not 100% fit to this

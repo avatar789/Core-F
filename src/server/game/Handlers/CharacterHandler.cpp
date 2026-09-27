@@ -2226,6 +2226,12 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
             case RACE_BLOODELF:
                 stmt->SetData(1, 137);
                 break;
+            case RACE_HIGHELF:
+                stmt->SetData(1, 137);
+                break;
+            case RACE_DARKIRONDWARF:
+                stmt->SetData(1, 111);
+                break;
             }
 
             trans->Append(stmt);

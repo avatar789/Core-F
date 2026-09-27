@@ -336,8 +336,24 @@ class spell_death_knight_initiate_visual : public SpellScript
         uint32 spellId;
         switch (target->GetDisplayId())
         {
+            /*
+To find out High Elf IDs, use query:
+select extra.id from db_CreatureModelData_12340 md,  db_CreatureDisplayInfo_12340 di, db_CreatureDisplayInfoExtra_12340 extra  WHERE md.id = di.modelid 
+and di.ExtendedDisplayInfoID = extra.ID
+and di.id=25369 // this id is for blood elf female below
+
+then make note of the ID and add 22000 (because the High Elves CreatureDisplayInfoExtra IDS were created from blood elves + 22000)
+in our example, first query returned 17211
+select di.id from db_CreatureModelData_12340 md,  db_CreatureDisplayInfo_12340 di, db_CreatureDisplayInfoExtra_12340 extra  WHERE md.id = di.modelid 
+and di.ExtendedDisplayInfoID = extra.ID
+and extra.id = 17211+22000
+
+second query gives you the ID of the High Elf Model. However I am not sure if this is needed, since it's NPC. May not be needed after all.
+            */
             case 25369: spellId = 51552; break; // bloodelf female
             case 25373: spellId = 51551; break; // bloodelf male
+            case 33924: spellId = 51552; break; // highelf female
+            case 33925: spellId = 51551; break; // highelf male
             case 25363: spellId = 51542; break; // draenei female
             case 25357: spellId = 51541; break; // draenei male
             case 25361: spellId = 51537; break; // dwarf female

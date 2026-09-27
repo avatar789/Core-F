@@ -97,7 +97,7 @@ namespace MMAP
     {
         std::vector<std::string> files;
         uint32 mapID, tileX, tileY, tileID, count = 0, fsize = 0;
-        char filter[12];
+        char filter[32];
 
         printf("Discovering maps... ");
         getDirContents(files, m_config->MapsPath());
@@ -131,7 +131,7 @@ namespace MMAP
             std::set<uint32>* tiles = m_tile.m_tiles;
             mapID = m_tile.m_mapId;
 
-            sprintf(filter, "%03u*.vmtile", mapID);
+            snprintf(filter, sizeof(filter), "%03u*.vmtile", mapID);
             files.clear();
             getDirContents(files, m_config->VMapsPath(), filter);
             for (auto & file : files)
@@ -146,7 +146,7 @@ namespace MMAP
                 count++;
             }
 
-            sprintf(filter, "%03u*", mapID);
+            snprintf(filter, sizeof(filter), "%03u*", mapID);
             files.clear();
             getDirContents(files, m_config->MapsPath(), filter);
             for (auto & file : files)
@@ -588,8 +588,8 @@ namespace MMAP
                                       dtNavMesh* navMesh)
     {
         // console output
-        char tileString[20];
-        sprintf(tileString, "[Map %03i] [%02i,%02i]: ", mapID, tileX, tileY);
+        char tileString[32];
+        snprintf(tileString, sizeof(tileString), "[Map %03i] [%02i,%02i]: ", mapID, tileX, tileY);
         printf("%s Building movemap tiles...\n", tileString);
 
         IntermediateValues iv;

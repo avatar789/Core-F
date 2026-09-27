@@ -1021,7 +1021,7 @@ int32 Player::getMaxTimer(MirrorTimerType timer)
     switch (timer)
     {
         case FATIGUE_TIMER:
-            return MINUTE * IN_MILLISECONDS;
+            return DISABLED_MIRROR_TIMER; // MINUTE * IN_MILLISECONDS;
         case BREATH_TIMER:
             {
                 if (!IsAlive() || HasWaterBreathingAura() || GetSession()->GetSecurity() >= AccountTypes(sWorld->getIntConfig(CONFIG_DISABLE_BREATHING)))
