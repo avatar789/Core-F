@@ -235,17 +235,38 @@ namespace
             player->removeSpell(spellId, SPEC_MASK_ALL, false);
     }
 
+    uint32 PremiumSecondsLeft(Player* player)
+    {
+        uint32 endTime = player->GetSession()->GetPremiumUnsetTime();
+        uint32 now = ShopNow();
+        if (!endTime || endTime <= now)
+            return 0;
+
+        return endTime - now;
+    }
+
     void SendPremiumInfo(Player* player)
     {
         player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_INFO_RESPONSE\t{}",
-            player->GetSession()->GetPremiumUnsetTime()));
+            PremiumSecondsLeft(player)));
+    }
+
+    void SendPremiumPurchase(Player* player, uint8 response)
+    {
+        if (response == 0)
+            SendShopBalance(player);
+
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_RENEW_RESPONSE\t{}:{}",
+            response, PremiumSecondsLeft(player)));
+        player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}",
+            response, PAID_SERVICE_PREMIUM_ONE_DAY));
     }
 
     void SendShopBalance(Player* player)
     {
         WorldSession* session = player->GetSession();
         player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BALANCE_RESPONSE\t{}:{}:{}:0:{}:0:0",
-            session->GetAccountBalance(), session->GetAccountVote(), session->GetPremiumUnsetTime(),
+            session->GetAccountBalance(), session->GetAccountVote(), PremiumSecondsLeft(player),
             session->GetVipUnsetTime()));
         SendPremiumInfo(player);
     }
@@ -630,11 +651,7 @@ void AddonIO::HandlePremiumRenewRequest(Player* player, std::string const& body)
     try
     {
         PremiumOffer const* offer = FindPremiumOffer(uint32(std::stoul(body)));
-        uint8 response = offer ? PurchasePremium(player, *offer) : 1;
-        player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_RENEW_RESPONSE\t{}:{}",
-            response, player->GetSession()->GetPremiumUnsetTime()));
-        if (response == 0)
-            SendShopBalance(player);
+        SendPremiumPurchase(player, offer ? PurchasePremium(player, *offer) : 1);
     }
     catch (std::exception const&)
     {
@@ -708,11 +725,7 @@ void AddonIO::HandleShopBuyItemRequest(Player* player, std::string const& body)
 
         if (PremiumOffer const* offer = FindPremiumOffer(uint32(std::stoul(par[0]))))
         {
-            response = PurchasePremium(player, *offer);
-            item = offer->id;
-            player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}", response, item));
-            if (response == 0)
-                SendShopBalance(player);
+            SendPremiumPurchase(player, PurchasePremium(player, *offer));
             return;
         }
 
