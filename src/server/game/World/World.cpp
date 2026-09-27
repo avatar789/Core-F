@@ -1972,7 +1972,7 @@ void World::LoadShop()
     _shopVersion = versionResult->Fetch()[0].Get<uint32>();
 
     if (QueryResult result = LoginDatabase.Query(
-        "SELECT id, itemEntry, count, price, discount, discountPrice, creatureEntry, "
+        "SELECT productID, itemEntry, count, price, discount, discountPrice, creatureEntry, "
         "storeFlags, CategoryID, SubCategoryID, MoneyID FROM custom_store_item_data"))
     {
         std::map<int32, StoreItemData> items;
@@ -1983,13 +1983,13 @@ void World::LoadShop()
             data.itemEntry = fields[1].Get<uint32>();
             data.count = fields[2].Get<uint32>();
             data.price = fields[3].Get<uint32>();
-            data.discount = fields[4].Get<uint8>();
+            data.discount = fields[4].Get<uint32>();
             data.discountPrice = fields[5].Get<uint32>();
             data.creatureEntry = fields[6].Get<uint32>();
             data.storeFlags = fields[7].Get<uint32>();
-            data.CategoryID = fields[8].Get<uint8>();
-            data.SubCategoryID = fields[9].Get<uint8>();
-            data.MoneyID = fields[10].Get<uint8>();
+            data.CategoryID = fields[8].Get<uint32>();
+            data.SubCategoryID = fields[9].Get<uint32>();
+            data.MoneyID = fields[10].Get<uint32>();
             items.emplace(int32(fields[0].Get<uint32>()), data);
         } while (result->NextRow());
 
@@ -2049,7 +2049,7 @@ void World::LoadShop()
             CollectionMountData data;
             data.id = fields[0].Get<uint32>();
             data.hash = fields[1].Get<std::string>();
-            data.currency = fields[2].Get<uint8>();
+            data.currency = fields[2].Get<uint32>();
             data.price = fields[3].Get<uint32>();
             data.productID = fields[4].Get<uint32>();
             mounts.emplace(int32(data.id), data);

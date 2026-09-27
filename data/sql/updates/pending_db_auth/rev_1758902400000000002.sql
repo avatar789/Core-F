@@ -45,18 +45,18 @@ DELETE FROM `custom_store_shop_version` WHERE `version` = 1;
 INSERT INTO `custom_store_shop_version` (`version`) VALUES (1);
 
 CREATE TABLE IF NOT EXISTS `custom_store_item_data` (
-  `id` int unsigned NOT NULL,
+  `productID` int unsigned NOT NULL,
   `itemEntry` int unsigned NOT NULL DEFAULT '0',
-  `count` int unsigned NOT NULL DEFAULT '1',
+  `count` int unsigned NOT NULL DEFAULT '0',
   `price` int unsigned NOT NULL DEFAULT '0',
-  `discount` tinyint unsigned NOT NULL DEFAULT '0',
+  `discount` int unsigned NOT NULL DEFAULT '0',
   `discountPrice` int unsigned NOT NULL DEFAULT '0',
   `creatureEntry` int unsigned NOT NULL DEFAULT '0',
   `storeFlags` int unsigned NOT NULL DEFAULT '0',
-  `CategoryID` tinyint unsigned NOT NULL DEFAULT '0',
-  `SubCategoryID` tinyint unsigned NOT NULL DEFAULT '0',
-  `MoneyID` tinyint unsigned NOT NULL DEFAULT '1',
-  PRIMARY KEY (`id`)
+  `CategoryID` int unsigned NOT NULL DEFAULT '0',
+  `SubCategoryID` int unsigned NOT NULL DEFAULT '0',
+  `MoneyID` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`productID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `custom_store_special_offer` (

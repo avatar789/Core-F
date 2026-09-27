@@ -71,13 +71,13 @@ struct StoreItemData
     uint32 itemEntry = 0;
     uint32 count = 0;
     uint32 price = 0;
-    uint8 discount = 0;
+    uint32 discount = 0;
     uint32 discountPrice = 0;
     uint32 creatureEntry = 0;
     uint32 storeFlags = 0;
-    uint8 CategoryID = 0;
-    uint8 SubCategoryID = 0;
-    uint8 MoneyID = 0;
+    uint32 CategoryID = 0;
+    uint32 SubCategoryID = 0;
+    uint32 MoneyID = 0;
 };
 
 struct StoreSpecialOfferData
@@ -105,7 +105,7 @@ struct CollectionMountData
 {
     uint32 id = 0;
     std::string hash;
-    uint8 currency = 0;
+    uint32 currency = 0;
     uint32 price = 0;
     uint32 productID = 0;
 };
