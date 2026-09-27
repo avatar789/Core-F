@@ -272,7 +272,7 @@ void Player::UpdateArmor()
 
     float value = GetFlatModifierValue(unitMod, BASE_VALUE);   // base armor (from items)
     value *= GetPctModifierValue(unitMod, BASE_PCT);           // armor percent from items
-    value += GetStat(STAT_AGILITY) * 2.0f;                             // armor bonus from stats
+    value += GetStat(STAT_AGILITY) * 0.23f;                             // armor bonus from stats
     value += GetFlatModifierValue(unitMod, TOTAL_VALUE);
 
     //add dynamic flat mods
@@ -712,7 +712,7 @@ const float m_diminishing_k[MAX_CLASSES] =
 {
     0.9560f,  // Warrior
     0.9560f,  // Paladin
-    0.9880f,  // Hunter
+    0.5880f,  // Hunter
     0.9880f,  // Rogue
     0.9830f,  // Priest
     0.9560f,  // DK
@@ -729,7 +729,7 @@ float Player::GetMissPercentageFromDefence() const
     {
         16.00f,     // Warrior //correct
         16.00f,     // Paladin //correct
-        16.00f,     // Hunter  //?
+        5.00f,     // Hunter  //?
         16.00f,     // Rogue   //?
         16.00f,     // Priest  //?
         16.00f,     // DK      //correct
@@ -759,7 +759,7 @@ void Player::UpdateParryPercentage()
         145.560408f,    // Hunter
         145.560408f,    // Rogue
         0.0f,           // Priest
-        47.003525f,     // DK
+        10.003525f,     // DK
         145.560408f,    // Shaman
         0.0f,           // Mage
         0.0f,           // Warlock
@@ -802,8 +802,8 @@ void Player::UpdateDodgePercentage()
     {
         88.129021f,     // Warrior
         88.129021f,     // Paladin
-        145.560408f,    // Hunter
-        145.560408f,    // Rogue
+        -0.01f,    // Hunter
+        56.560408f,    // Rogue
         150.375940f,    // Priest
         88.129021f,     // DK
         145.560408f,    // Shaman
@@ -1246,28 +1246,28 @@ void Guardian::UpdateMaxHealth()
     switch (GetEntry())
     {
         case NPC_IMP:
-            multiplicator = 8.4f;
+            multiplicator = 365.4f;
             break;
         case NPC_WATER_ELEMENTAL_TEMP:
-            multiplicator = 7.5f;
+            multiplicator = 22.5f;
             break;
         case NPC_WATER_ELEMENTAL_PERM:
-            multiplicator = 7.5f;
+            multiplicator = 22.5f;
             break;
         case NPC_VOIDWALKER:
-            multiplicator = 11.0f;
+            multiplicator = 15.0f;
             break;
         case NPC_SUCCUBUS:
-            multiplicator = 9.1f;
+            multiplicator = 15.1f;
             break;
         case NPC_FELHUNTER:
-            multiplicator = 9.5f;
+            multiplicator = 15.5f;
             break;
         case NPC_FELGUARD:
-            multiplicator = 11.0f;
+            multiplicator = 15.0f;
             break;
         case NPC_BLOODWORM:
-            multiplicator = 1.0f;
+            multiplicator = 18.0f;
             break;
         default:
             multiplicator = 10.0f;
@@ -1325,11 +1325,11 @@ void Guardian::UpdateAttackPowerAndDamage(bool ranged)
     UnitMods unitMod = UNIT_MOD_ATTACK_POWER;
 
     if (GetEntry() == NPC_IMP)                                     // imp's attack power
-        val = GetStat(STAT_STRENGTH) - 10.0f;
+        val = 7 * GetStat(STAT_STRENGTH) - 10.0f;
     else if (IsPetGhoul())                                         // DK's ghoul attack power
-        val = 589 /*xinef: base ap!*/ + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY);
+        val = 3089 /*xinef: base ap!*/ + GetStat(STAT_STRENGTH) + GetStat(STAT_AGILITY);
     else
-        val = 2 * GetStat(STAT_STRENGTH) - 20.0f;
+        val = 8 * GetStat(STAT_STRENGTH) - 20.0f;
 
     SetStatFlatModifier(unitMod, BASE_VALUE, val);
 

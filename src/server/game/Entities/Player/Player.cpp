@@ -2796,7 +2796,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     //set create powers
     SetCreateMana(classInfo.basemana);
 
-    SetArmor(int32(m_createStats[STAT_AGILITY] * 2));
+    SetArmor(int32(m_createStats[STAT_AGILITY] * 0.2));
 
     InitStatBuffMods();
 
@@ -4029,7 +4029,7 @@ bool Player::resetTalents(bool noResetCost)
         RemoveAtLoginFlag(AT_LOGIN_RESET_TALENTS, true);
 
     // xinef: get max available talent points amount
-    uint32 talentPointsForLevel = CalculateTalentsPoints();
+    uint32 talentPointsForLevel = CalculateTalentsPoints() + m_questRewardTalentCount;
 
     // xinef: no talent points are used, return
     if (m_usedTalentCount == 0)
@@ -5420,7 +5420,7 @@ float Player::GetMeleeCritFromAgility()
         return 0.0f;
 
     float crit = critBase->base + GetStat(STAT_AGILITY) * critRatio->ratio;
-    return crit * 100.0f;
+    return crit * 7.0f;
 }
 
 void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
@@ -5430,30 +5430,30 @@ void Player::GetDodgeFromAgility(float& diminishing, float& nondiminishing)
     {
         0.036640f, // Warrior
         0.034943f, // Paladi
-        -0.040873f, // Hunter
-        0.020957f, // Rogue
+        -0.549973f, // Hunter
+        -0.200957f, // Rogue
         0.034178f, // Priest
         0.036640f, // DK
         0.021080f, // Shaman
         0.036587f, // Mage
         0.024211f, // Warlock
         0.0f,      // ??
-        0.056097f  // Druid
+        -0.046097f  // Druid
     };
     // Crit/agility to dodge/agility coefficient multipliers; 3.2.0 increased required agility by 15%
     const float crit_to_dodge[MAX_CLASSES] =
     {
-        0.85f / 1.15f,  // Warrior
-        1.00f / 1.15f,  // Paladin
-        1.11f / 1.15f,  // Hunter
-        2.00f / 1.15f,  // Rogue
+        0.12f / 1.15f,  // Warrior
+        0.10f / 1.15f,  // Paladin
+        0.30f / 1.15f,  // Hunter
+        0.30f / 1.15f,  // Rogue
         1.00f / 1.15f,  // Priest
-        0.85f / 1.15f,  // DK
-        1.60f / 1.15f,  // Shaman
+        0.11f / 1.15f,  // DK
+        0.20f / 1.15f,  // Shaman
         1.00f / 1.15f,  // Mage
         0.97f / 1.15f,  // Warlock (?)
         0.0f,           // ??
-        2.00f / 1.15f   // Druid
+        0.30f / 1.15f   // Druid
     };
 
     uint8 level = GetLevel();
@@ -5490,7 +5490,7 @@ float Player::GetSpellCritFromIntellect()
         return 0.0f;
 
     float crit = critBase->base + GetStat(STAT_INTELLECT) * critRatio->ratio;
-    return crit * 100.0f;
+    return crit * 11.0f;
 }
 
 float Player::GetRatingMultiplier(CombatRating cr) const
