@@ -268,7 +268,7 @@ namespace
         player->SendAddonMessage(Acore::StringFormat("ASMSG_PREMIUM_RENEW_RESPONSE\t{}:{}",
             response, PremiumSecondsLeft(player)));
         player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}",
-            response, PAID_SERVICE_PREMIUM_ONE_DAY));
+            response, uint32(PAID_SERVICE_PREMIUM_ONE_DAY)));
     }
 
     uint8 ShopPaidService(Player* player, uint32 itemId, uint32 count, uint8 moneyId, uint32 cost, bool isProfession)
