@@ -320,16 +320,13 @@ namespace
                 player->GiveLevel(uint8(sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL)));
                 break;
             case PAID_SERVICE_PREMIUM_ONE_DAY:
-                if (count == 0 || count > 3650 || !session->AddVipTime(count * uint32(DAY)))
+                if (count == 0 || count > 3650 || !session->AddPremiumTime(count * uint32(DAY)))
                 {
                     session->AddDonateBonusOrVote(int32(cost), moneyId, false);
                     response = 1;
                 }
                 else
-                {
-                    session->WritePurchaseToLogs(session, "VIP_BUY", 0, count, cost, ShopNow());
-                    SendShopBalance(player);
-                }
+                    session->WritePurchaseToLogs(session, "PREMIUM_BUY", 0, count, cost, ShopNow());
                 break;
             default:
                 break;
@@ -574,10 +571,10 @@ void AddonIO::HandleShopItemListRequest(Player* player, std::string const& /*bod
     for (auto const& it : sWorld->GetStoreItem())
     {
         ItemTemplate const* proto = sObjectMgr->GetItemTemplate(it.second.itemEntry);
-        if (!proto)
+        if (!proto && !IsPaidService(it.second.itemEntry))
             continue;
 
-        if (it.second.CategoryID == ARMORY_CATEGORY_ID)
+        if (proto && it.second.CategoryID == ARMORY_CATEGORY_ID)
         {
             if (proto->Class == ITEM_CLASS_ARMOR && proto->SubClass == ITEM_SUBCLASS_ARMOR_PLATE
                 && !player->HasSpell(750))
@@ -690,6 +687,8 @@ void AddonIO::HandleShopBuyItemRequest(Player* player, std::string const& body)
         }
 
         player->SendAddonMessage(Acore::StringFormat("ASMSG_SHOP_BUY_ITEM_RESPONSE\t{}:{}", response, item));
+        if (response == 0)
+            SendShopBalance(player);
     }
     catch (std::exception const&)
     {

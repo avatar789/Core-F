@@ -499,6 +499,7 @@ public:
     [[nodiscard]] uint32 GetPremiumUnsetTime() const { return _premiumUnset; }
     [[nodiscard]] uint32 GetVipUnsetTime() const { return _vipUnset; }
     void LoadSubscriptionTimes();
+    bool AddPremiumTime(uint32 seconds);
     bool AddVipTime(uint32 seconds);
     void WritePurchaseToLogs(WorldSession* session, std::string const& service, uint32 item, uint32 count, uint32 price,
         uint32 time);

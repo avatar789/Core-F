@@ -1584,6 +1584,50 @@ namespace
 
         return ToUnixTime(unsetdate);
     }
+
+    bool ExtendSubscription(uint32 accountId, uint32 seconds, LoginDatabaseStatements selectStmt,
+        LoginDatabaseStatements updateStmt, LoginDatabaseStatements insertStmt, uint32& endTime)
+    {
+        if (!seconds)
+            return false;
+
+        uint32 now = uint32(GameTime::GetGameTime().count());
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(selectStmt);
+        stmt->SetData(0, accountId);
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+
+        if (result)
+        {
+            Field* fields = result->Fetch();
+            int64 setdate = fields[0].Get<int64>();
+            int64 unsetdate = fields[1].Get<int64>();
+            if (setdate != 0 && setdate == unsetdate)
+            {
+                endTime = ToUnixTime(unsetdate);
+                return true;
+            }
+
+            int64 base = unsetdate > int64(now) ? unsetdate : int64(now);
+            int64 updated = base + int64(seconds);
+            stmt = LoginDatabase.GetPreparedStatement(updateStmt);
+            stmt->SetData(0, updated);
+            stmt->SetData(1, accountId);
+            stmt->SetData(2, setdate);
+            LoginDatabase.DirectExecute(stmt);
+            endTime = ToUnixTime(updated);
+            return true;
+        }
+
+        int64 start = int64(now);
+        int64 end = start + int64(seconds);
+        stmt = LoginDatabase.GetPreparedStatement(insertStmt);
+        stmt->SetData(0, accountId);
+        stmt->SetData(1, start);
+        stmt->SetData(2, end);
+        LoginDatabase.DirectExecute(stmt);
+        endTime = ToUnixTime(end);
+        return true;
+    }
 }
 
 void WorldSession::LoadSubscriptionTimes()
@@ -1599,49 +1643,23 @@ void WorldSession::LoadSubscriptionTimes()
     _vipUnset = ReadSubscriptionEnd(LoginDatabase.Query(vipStmt), now);
 }
 
-bool WorldSession::AddVipTime(uint32 seconds)
+bool WorldSession::AddPremiumTime(uint32 seconds)
 {
-    if (!seconds)
+    if (!ExtendSubscription(GetAccountId(), seconds, LOGIN_SEL_ACCOUNT_PREMIUM_TIME,
+            LOGIN_UPD_ACCOUNT_PREMIUM_TIME, LOGIN_INS_ACCOUNT_PREMIUM, _premiumUnset))
         return false;
 
-    uint32 now = uint32(GameTime::GetGameTime().count());
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_VIP_TIME);
-    stmt->SetData(0, GetAccountId());
-    PreparedQueryResult result = LoginDatabase.Query(stmt);
+    _isPremium = true;
+    return true;
+}
 
-    if (result)
-    {
-        Field* fields = result->Fetch();
-        int64 setdate = fields[0].Get<int64>();
-        int64 unsetdate = fields[1].Get<int64>();
-        if (setdate != 0 && setdate == unsetdate)
-        {
-            _isPremium1 = true;
-            _vipUnset = ToUnixTime(unsetdate);
-            return true;
-        }
+bool WorldSession::AddVipTime(uint32 seconds)
+{
+    if (!ExtendSubscription(GetAccountId(), seconds, LOGIN_SEL_ACCOUNT_VIP_TIME, LOGIN_UPD_ACCOUNT_VIP_TIME,
+            LOGIN_INS_ACCOUNT_VIP, _vipUnset))
+        return false;
 
-        int64 base = unsetdate > int64(now) ? unsetdate : int64(now);
-        int64 updated = base + int64(seconds);
-        stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_ACCOUNT_VIP_TIME);
-        stmt->SetData(0, updated);
-        stmt->SetData(1, GetAccountId());
-        stmt->SetData(2, setdate);
-        LoginDatabase.DirectExecute(stmt);
-        _isPremium1 = true;
-        _vipUnset = ToUnixTime(updated);
-        return true;
-    }
-
-    int64 start = int64(now);
-    int64 end = start + int64(seconds);
-    stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT_VIP);
-    stmt->SetData(0, GetAccountId());
-    stmt->SetData(1, start);
-    stmt->SetData(2, end);
-    LoginDatabase.DirectExecute(stmt);
     _isPremium1 = true;
-    _vipUnset = ToUnixTime(end);
     return true;
 }
 
